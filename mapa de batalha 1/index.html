@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa D&D</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            background: #222;
+        }
+
+        /* =========================
+           PAINEL LATERAL
+        ========================= */
+        #painel {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 180px;
+            height: 100vh;
+            background: #1b1b1b;
+            color: white;
+            padding: 15px;
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        /* =========================
+           SOBRE
+        ========================= */
+        #sobre {
+            position: absolute;
+            left: 15px;
+            bottom: 15px;
+            width: 150px;
+            background: #242424;
+            border: 1px solid #444;
+            border-radius: 6px;
+            padding: 8px;
+        }
+
+        #sobre-titulo {
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        #sobre-conteudo {
+            margin-top: 8px;
+            font-size: 12px;
+            line-height: 1.5;
+            color: #ccc;
+        }
+
+        #sobre-conteudo.fechado {
+            display: none;
+        }
+
+        /* =========================
+           TÍTULOS
+        ========================= */
+        #painel h2 {
+            font-size: 20px;
+            margin: 15px 0 10px 0;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        #painel h2:hover {
+            color: #ccc;
+        }
+
+        #painel h3 {
+            font-size: 16px;
+            margin: 12px 0 8px 0;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        #painel h3:hover {
+            color: #ccc;
+        }
+
+        /* =========================
+           CONTEÚDO DO DROPDOWN
+        ========================= */
+        .grupo-personagens {
+            display: block;
+        }
+
+        .grupo-personagens.fechado {
+            display: none;
+        }
+
+        /* =========================
+           TOGGLES
+        ========================= */
+        .toggle-personagem {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 6px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .toggle-personagem input {
+            cursor: pointer;
+        }
+
+        /* =========================
+           NOME DO PERSONAGEM
+        ========================= */
+        .nome-personagem {
+            flex: 1;
+        }
+
+        /* =========================
+           BOTÃO RENOMEAR
+        ========================= */
+        .botao-renomear {
+            border: none;
+            background: none;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 0;
+            margin: 0;
+        }
+
+        .botao-renomear:hover {
+            opacity: 0.7;
+        }
+
+        /* =========================
+           BOTÕES DOS TOKENS
+        ========================= */
+        .botao-token {
+            width: 100%;
+            height: 70px;
+            margin-bottom: 10px;
+            border: 2px solid #555;
+            border-radius: 8px;
+            background: #2b2b2b;
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .botao-token:active {
+            cursor: grabbing;
+        }
+
+        .botao-token img {
+            max-width: 60px;
+            max-height: 60px;
+            pointer-events: none;
+        }
+
+        /* =========================
+           ÁREA DO MAPA
+        ========================= */
+        #area-mapa {
+            position: absolute;
+            left: 180px;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            overflow: auto;
+            background: #333;
+        }
+
+        /* =========================
+           MAPA
+        ========================= */
+		#mapa {
+			position: relative;
+			width: 1080px;   /* CONFIGURAR NOVO MAPA - Reduza ou Aumente este widht e height para aumentar ou diminuir o mapa. Se precisar saber os valores em porcentagem acesse:  https://www.4devs.com.br/calculadora_porcentagem*/
+			height: 810px;  /* CONFIGURAR NOVO MAPA - Reduza ou Aumente este widht e height para aumentar ou diminuir o mapa. Se precisar saber os valores em porcentagem acesse:  https://www.4devs.com.br/calculadora_porcentagem*/
+			background-image: url("Goblin ambush.png");
+			background-size: 1080px 810px;  /* CONFIGURAR NOVO MAPA - Reduza ou Aumente este widht e height para aumentar ou diminuir o mapa. Se precisar saber os valores em porcentagem acesse:  https://www.4devs.com.br/calculadora_porcentagem*/
+			background-position: top left;
+			background-repeat: no-repeat;
+		}
+
+        /* =========================
+           TOKEN NO MAPA
+        ========================= */
+        .token-container {
+            position: absolute;
+            width: 70px;
+            height: 90px;
+            z-index: 10;
+            user-select: none;
+        }
+
+        /* =========================
+           NOME ACIMA DO TOKEN
+        ========================= */
+        .nome-token {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            transform: translateX(-50%);
+            color: white;
+            background: rgba(0, 0, 0, 0.75);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: bold;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        /* =========================
+           IMAGEM DO TOKEN
+        ========================= */
+        .token {
+            position: absolute;
+            left: 0;
+            top: 20px;
+            width: 65px;  /* CONFIGURAR NOVO MAPA - Reduza ou Aumente este widht e height para aumentar ou diminuir os tokens e adapatar ao novo mapa. Se precisar saber os valores em porcentagem acesse:  https://www.4devs.com.br/calculadora_porcentagem*/
+            height: 65px;  /* CONFIGURAR NOVO MAPA - Reduza ou Aumente este widht e height para aumentar ou diminuir os tokens e adapatar ao novo mapa. Se precisar saber os valores em porcentagem acesse:  https://www.4devs.com.br/calculadora_porcentagem*/
+            object-fit: contain;
+            cursor: grab;
+            user-select: none;
+            z-index: 1;
+        }
+
+        .token:active {
+            cursor: grabbing;
+        }
+		.nome-inimigo {
+		color: red;
+		}
+    </style>
+</head>
+
+<body>
+
+    <!-- =====================================================
+         PAINEL LATERAL
+    ====================================================== -->
+
+    <aside id="painel">
+
+        <!-- =================================================
+             PARTY
+        ================================================== -->
+        <h2 onclick="abrirFechar('party')">Party</h2>
+
+        <div id="party" class="grupo-personagens fechado">
+
+            <!-- =========================
+                 GUERREIRO
+            ========================== -->
+            <h3 onclick="abrirFechar('guerreiros')">> Guerreiro</h3>
+
+            <div id="guerreiros" class="grupo-personagens fechado">
+
+                <!-- Guerreiro 1 -->
+                <div class="personagem-opcao" id="opcao-guerreiro1">
+                    <label class="toggle-personagem">
+                        <input type="checkbox" checked onchange="mostrarPersonagem('opcao-guerreiro1', this.checked)">
+                        <span class="nome-personagem">Masculino 1</span>
+                        <button type="button" class="botao-renomear" onclick="renomearPersonagem('opcao-guerreiro1')">✏️</button>
+                    </label>
+                    <div class="botao-token" draggable="true" data-imagem="Guerreiro 1.png">
+                        <img src="Guerreiro 1.png">
+                    </div>
+                </div>
+
+                <!-- Guerreiro 2 -->
+                <div class="personagem-opcao" id="opcao-guerreiro2">
+                    <label class="toggle-personagem">
+                        <input type="checkbox" checked onchange="mostrarPersonagem('opcao-guerreiro2', this.checked)">
+                        <span class="nome-personagem">Masculino 2</span>
+                        <button type="button" class="botao-renomear" onclick="renomearPersonagem('opcao-guerreiro2')">✏️</button>
+                    </label>
+                    <div class="botao-token" draggable="true" data-imagem="Guerreiro 2.png">
+                        <img src="Guerreiro 2.png">
+                    </div>
+                </div>
+
+                <!-- Guerreiro 3 -->
+                <div class="personagem-opcao" id="opcao-guerreiro3">
+                    <label class="toggle-personagem">
+                        <input type="checkbox" checked onchange="mostrarPersonagem('opcao-guerreiro3', this.checked)">
+                        <span class="nome-personagem">Feminino 1</span>
+                        <button type="button" class="botao-renomear" onclick="renomearPersonagem('opcao-guerreiro3')">✏️</button>
+                    </label>
+                    <div class="botao-token" draggable="true" data-imagem="Guerreiro 3.png">
+                        <img src="Guerreiro 3.png">
+                    </div>
+                </div>
+
+                <!-- Guerreiro 4 -->
+                <div class="personagem-opcao" id="opcao-guerreiro4">
+                    <label class="toggle-personagem">
+                        <input type="checkbox" checked onchange="mostrarPersonagem('opcao-guerreiro4', this.checked)">
+                        <span class="nome-personagem">Feminino 2</span>
+                        <button type="button" class="botao-renomear" onclick="renomearPersonagem('opcao-guerreiro4')">✏️</button>
+                    </label>
+                    <div class="botao-token" draggable="true" data-imagem="Guerreiro 4.png">
+                        <img src="Guerreiro 4.png">
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- =========================
+                 CLÉRIGO
+            ========================== -->
+            <h3 onclick="abrirFechar('clerigos')">> Clérigo</h3>
+
+            <div id="clerigos" class="grupo-personagens fechado">
+
+                <!-- Clérigo 1 -->
+                <div class="personagem-opcao" id="opcao-clerigo1">
+                    <label class="toggle-personagem">
+                        <input type="checkbox" checked onchange="mostrarPersonagem('opcao-clerigo1', this.checked)">
+                        <span class="nome-personagem">Masculino 1</span>
+                        <button type="button" class="botao-renomear" onclick="renomearPersonagem('opcao-clerigo1')">✏️</button>
+                    </label>
+                    <div class="botao-token" draggable="true" data-imagem="Clérigo 1.png">
+                        <img src="Clérigo 1.png">
+                    </div>
+                </div>
+
+                <!-- Clérigo 2 -->
+                <div class="personagem-opcao" id="opcao-clerigo2">
+                    <label class="toggle-personagem">
+                        <input type="checkbox" checked onchange="mostrarPersonagem('opcao-clerigo2', this.checked)">
+                        <span class="nome-personagem">Masculino 2</span>
+                        <button type="button" class="botao-renomear" onclick="renomearPersonagem('opcao-clerigo2')">✏️</button>
+                    </label>
+                    <div class="botao-token" draggable="true" data-imagem="Clérigo 2.png">
+                        <img src="Clérigo 2.png">
+                    </div>
+                </div>
+
+                <!-- Clérigo 3 -->
+                <div class="personagem-opcao" id="opcao-clerigo3">
+                    <label class="toggle-personagem">
+                        <input type="checkbox" checked onchange="mostrarPersonagem('opcao-clerigo3', this.checked)">
+                        <span class="nome-personagem">Feminino 1</span>
+                        <button type="button" class="botao-renomear" onclick="renomearPersonagem('opcao-clerigo3')">✏️</button>
+                    </label>
+                    <div class="botao-token" draggable="true" data-imagem="Clérigo 3.png">
+                        <img src="Clérigo 3.png">
+                    </div>
+                </div>
+
+                <!-- Clérigo 4 -->
+                <div class="personagem-opcao" id="opcao-clerigo4">
+                    <label class="toggle-personagem">
+                        <input type="checkbox" checked onchange="mostrarPersonagem('opcao-clerigo4', this.checked)">
+                        <span class="nome-personagem">Feminino 2</span>
+                        <button type="button" class="botao-renomear" onclick="renomearPersonagem('opcao-clerigo4')">✏️</button>
+                    </label>
+                    <div class="botao-token" draggable="true" data-imagem="Clérigo 4.png">
+                        <img src="Clérigo 4.png">
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- =========================
+                 LADINO
+            ========================== -->
+            <h3 onclick="abrirFechar('ladinos')">> Ladino</h3>
+
+            <div id="ladinos" class="grupo-personagens fechado">
+
+                <!-- Ladino 1 -->
+                <div class="personagem-opcao" id="opcao-ladino1">
+                    <label class="toggle-personagem">
+                        <input type="checkbox" checked onchange="mostrarPersonagem('opcao-ladino1', this.checked)">
+                        <span class="nome-personagem">Masculino 1</span>
+                        <button type="button" class="botao-renomear" onclick="renomearPersonagem('opcao-ladino1')">✏️</button>
+                    </label>
+                    <div class="botao-token" draggable="true" data-imagem="Ladino 1.png">
+                        <img src="Ladino 1.png">
+                    </div>
+                </div>
+
+                <!-- Ladino 2 -->
+                <div class="personagem-opcao" id="opcao-ladino2">
+                    <label class="toggle-personagem">
+                        <input type="checkbox" checked onchange="mostrarPersonagem('opcao-ladino2', this.checked)">
+                        <span class="nome-personagem">Masculino 2</span>
+                        <button type="button" class="botao-renomear" onclick="renomearPersonagem('opcao-ladino2')">✏️</button>
+                    </label>
+                    <div class="botao-token" draggable="true" data-imagem="Ladino 2.png">
+                        <img src="Ladino 2.png">
+                    </div>
+                </div>
+
+                <!-- Ladino 3 -->
+                <div class="personagem-opcao" id="opcao-ladino3">
+                    <label class="toggle-personagem">
+                        <input type="checkbox" checked onchange="mostrarPersonagem('opcao-ladino3', this.checked)">
+                        <span class="nome-personagem">Feminino 1</span>
+                        <button type="button" class="botao-renomear" onclick="renomearPersonagem('opcao-ladino3')">✏️</button>
+                    </label>
+                    <div class="botao-token" draggable="true" data-imagem="Ladino 3.png">
+                        <img src="Ladino 3.png">
+                    </div>
+                </div>
+
+                <!-- Ladino 4 -->
+                <div class="personagem-opcao" id="opcao-ladino4">
+                    <label class="toggle-personagem">
+                        <input type="checkbox" checked onchange="mostrarPersonagem('opcao-ladino4', this.checked)">
+                        <span class="nome-personagem">Feminino 2</span>
+                        <button type="button" class="botao-renomear" onclick="renomearPersonagem('opcao-ladino4')">✏️</button>
+                    </label>
+                    <div class="botao-token" draggable="true" data-imagem="Ladino 4.png">
+                        <img src="Ladino 4.png">
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- =========================
+                 MAGO
+            ========================== -->
+            <h3 onclick="abrirFechar('magos')">> Mago</h3>
+
+            <div id="magos" class="grupo-personagens fechado">
+
+                <!-- Mago 1 -->
+                <div class="personagem-opcao" id="opcao-mago1">
+                    <label class="toggle-personagem">
+                        <input type="checkbox" checked onchange="mostrarPersonagem('opcao-mago1', this.checked)">
+                        <span class="nome-personagem">Masculino 1</span>
+                        <button type="button" class="botao-renomear" onclick="renomearPersonagem('opcao-mago1')">✏️</button>
+                    </label>
+                    <div class="botao-token" draggable="true" data-imagem="Mago 1.png">
+                        <img src="Mago 1.png">
+                    </div>
+                </div>
+
+                <!-- Mago 2 -->
+                <div class="personagem-opcao" id="opcao-mago2">
+                    <label class="toggle-personagem">
+                        <input type="checkbox" checked onchange="mostrarPersonagem('opcao-mago2', this.checked)">
+                        <span class="nome-personagem">Masculino 2</span>
+                        <button type="button" class="botao-renomear" onclick="renomearPersonagem('opcao-mago2')">✏️</button>
+                    </label>
+                    <div class="botao-token" draggable="true" data-imagem="Mago 2.png">
+                        <img src="Mago 2.png">
+                    </div>
+                </div>
+
+                <!-- Mago 3 -->
+                <div class="personagem-opcao" id="opcao-mago3">
+                    <label class="toggle-personagem">
+                        <input type="checkbox" checked onchange="mostrarPersonagem('opcao-mago3', this.checked)">
+                        <span class="nome-personagem">Feminino 1</span>
+                        <button type="button" class="botao-renomear" onclick="renomearPersonagem('opcao-mago3')">✏️</button>
+                    </label>
+                    <div class="botao-token" draggable="true" data-imagem="Mago 3.png">
+                        <img src="Mago 3.png">
+                    </div>
+                </div>
+
+                <!-- Mago 4 -->
+                <div class="personagem-opcao" id="opcao-mago4">
+                    <label class="toggle-personagem">
+                        <input type="checkbox" checked onchange="mostrarPersonagem('opcao-mago4', this.checked)">
+                        <span class="nome-personagem">Feminino 2</span>
+                        <button type="button" class="botao-renomear" onclick="renomearPersonagem('opcao-mago4')">✏️</button>
+                    </label>
+                    <div class="botao-token" draggable="true" data-imagem="Mago 4.png">
+                        <img src="Mago 4.png">
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- =================================================
+             INIMIGOS
+        ================================================== -->
+        <h2 style="color: red;" onclick="abrirFechar('inimigos')">Inimigos</h2>
+
+        <div id="inimigos" class="grupo-personagens fechado">
+
+            <!-- =========================
+                 GOBLIN
+            ========================== -->
+            <h3 onclick="abrirFechar('goblins')">> Goblin</h3>
+
+            <div id="goblins" class="grupo-personagens fechado">
+                <div class="botao-token" id="goblin" draggable="true" data-imagem="Goblin.png" data-nome="Goblin">
+                    <img src="Goblin.png">
+                </div>
+            </div>
+
+        </div>
+
+        <!-- =========================
+             SOBRE
+        ========================= -->
+        <div id="sobre">
+            <div id="sobre-titulo" onclick="abrirFechar('sobre-conteudo')">Sobre</div>
+            <div id="sobre-conteudo" class="fechado">
+                <strong>Mapa dinâmico D&D</strong><br><br>
+                Versão: 1.0<br>
+                Campanha: Lost Mine of Phandelver<br>
+                Criador: Alexandre (Xande1508)<br><br>
+            </div>
+        </div>
+
+    </aside>
+
+    <!-- =====================================================
+         ÁREA DO MAPA
+    ====================================================== -->
+    <main id="area-mapa">
+        <div id="mapa"></div>
+    </main>
+
+    <!-- =====================================================
+         JAVASCRIPT
+    ====================================================== -->
+    <script>
+        const mapa = document.getElementById("mapa");
+        const areaMapa = document.getElementById("area-mapa");
+
+        /* =================================================
+           ABRIR / FECHAR DROPDOWN
+        ================================================== */
+        function abrirFechar(id) {
+            const grupo = document.getElementById(id);
+            grupo.classList.toggle("fechado");
+        }
+
+        /* =================================================
+           MOSTRAR / OCULTAR PERSONAGEM
+        ================================================== */
+        function mostrarPersonagem(id, mostrar) {
+            const personagem = document.getElementById(id);
+            if (!mostrar) {
+                personagem.remove();
+            }
+        }
+
+        /* =================================================
+           RENOMEAR PERSONAGEM
+        ================================================== */
+        function renomearPersonagem(id) {
+            const personagem = document.getElementById(id);
+            if (!personagem) return;
+
+            const nome = personagem.querySelector(".nome-personagem");
+            if (!nome) return;
+
+            const novoNome = prompt("Digite o novo nome:", nome.textContent.trim());
+            if (novoNome !== null && novoNome.trim() !== "") {
+                nome.textContent = novoNome.trim();
+            }
+        }
+
+        /* =================================================
+           ARRASTAR BOTÃO DO PAINEL
+        ================================================== */
+        document.querySelectorAll(".botao-token").forEach(botao => {
+            botao.addEventListener("dragstart", function(event) {
+                const imagem = this.dataset.imagem;
+                let nome = this.dataset.nome;
+
+                if (!nome) {
+                    const personagem = this.closest(".personagem-opcao");
+                    if (personagem) {
+                        const elementoNome = personagem.querySelector(".nome-personagem");
+                        if (elementoNome) {
+                            nome = elementoNome.textContent.trim();
+                        }
+                    }
+                }
+
+                event.dataTransfer.setData("imagem", imagem);
+                event.dataTransfer.setData("nome", nome || "");
+            });
+        });
+
+        /* =================================================
+           PERMITIR SOLTAR NO MAPA
+        ================================================== */
+        areaMapa.addEventListener("dragover", function(event) {
+            event.preventDefault();
+        });
+
+        /* =================================================
+           SOLTAR TOKEN NO MAPA
+        ================================================== */
+        areaMapa.addEventListener("drop", function(event) {
+            event.preventDefault();
+
+            const imagem = event.dataTransfer.getData("imagem");
+            const nome = event.dataTransfer.getData("nome");
+
+            if (!imagem) return;
+
+            /* Criar container */
+            const container = document.createElement("div");
+            container.classList.add("token-container");
+
+            /* Criar nome */
+            const nomeToken = document.createElement("div");
+            nomeToken.classList.add("nome-token");
+			if (nome === "Goblin") {
+			nomeToken.classList.add("nome-inimigo");
+			}
+            nomeToken.textContent = nome || "";
+            container.appendChild(nomeToken);
+
+            /* Criar imagem */
+            const token = document.createElement("img");
+            token.src = imagem;
+            token.classList.add("token");
+            token.draggable = false;
+            container.appendChild(token);
+
+            /* Descobrir posição */
+            const rect = mapa.getBoundingClientRect();
+            const x = event.clientX - rect.left - 35;
+            const y = event.clientY - rect.top - 45;
+
+            /* Colocar no mapa */
+            container.style.left = x + "px";
+            container.style.top = y + "px";
+            mapa.appendChild(container);
+
+            /* Tornar arrastável */
+            tornarArrastavel(container);
+        });
+
+        /* =================================================
+           ARRASTAR TOKEN PELO MAPA
+        ================================================== */
+        function tornarArrastavel(container) {
+            let arrastando = false;
+            let offsetX = 0;
+            let offsetY = 0;
+
+            /* =============================================
+               BOTÃO DIREITO = APAGAR
+            ============================================== */
+            container.addEventListener("contextmenu", function(event) {
+                event.preventDefault();
+                container.remove();
+            });
+
+            /* =============================================
+               BOTÃO ESQUERDO = COMEÇAR A ARRASTAR
+            ============================================== */
+            container.addEventListener("mousedown", function(event) {
+                if (event.button !== 0) return;
+
+                arrastando = true;
+                const rect = container.getBoundingClientRect();
+                offsetX = event.clientX - rect.left;
+                offsetY = event.clientY - rect.top;
+                event.preventDefault();
+            });
+
+            /* =============================================
+               MOVIMENTAR TOKEN
+            ============================================== */
+            document.addEventListener("mousemove", function(event) {
+                if (!arrastando) return;
+
+                const rect = mapa.getBoundingClientRect();
+                let x = event.clientX - rect.left - offsetX;
+                let y = event.clientY - rect.top - offsetY;
+
+                /* Impedir sair do mapa */
+                x = Math.max(0, Math.min(x, mapa.clientWidth - container.clientWidth));
+                y = Math.max(0, Math.min(y, mapa.clientHeight - container.clientHeight));
+
+                container.style.left = x + "px";
+                container.style.top = y + "px";
+            });
+
+            /* =============================================
+               PARAR DE ARRASTAR
+            ============================================== */
+            document.addEventListener("mouseup", function(event) {
+                if (event.button === 0) {
+                    arrastando = false;
+                }
+            });
+        }
+    </script>
+</body>
+
+</html>
